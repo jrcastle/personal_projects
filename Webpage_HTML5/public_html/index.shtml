@@ -32,4 +32,25 @@
             </ul>
         </nav>
     </header>
+    
+    <section class="container">
+        <h2 class="hidden">Lorem Ipsum</h2>
+        <article id="slider_content1">
+            <h3>Lorem ipsum dolor?</h3>
+            <p>Weit hinten, hinter den Wortbergen, fern der Länder Vokalien und Konsonantien leben die Blindtexte. Abgeschieden wohnen Sie in Buchstabhausen an der Küste des Semantik.</p>
+            <a class="button" href="some_page.html">Mehr lesen</a></article>
+        <article id="slider_content2">
+            <h3>Nulla consequat</h3>
+            <p>Ein kleines Bächlein namens Duden fließt durch ihren Ort und versorgt sie mit den nötigen Regelialien. Es ist ein paradiesmatisches Land, in dem einem gebratene Satzteile in den Mund fliegen.</p>
+            <a class="button" href="some_page.html">Mehr lesen</a></article>
+        <article id="slider_content3">
+            <h3>Lorem ipsum</h3>
+            <p>Nicht einmal von der allmächtigen Interpunktion werden die Blindtexte beherrscht – ein geradezu unorthographisches Leben.</p>
+            <a class="button" href="some_page.html">Mehr lesen</a>
+        <div id="slides">
+            <img src="img/IMG_2602_1024.jpg" alt="Some alt text">
+            <img src="img/IMG_2603_1024.jpg" alt="Some alt text">
+            <img src="img/IMG_2606_1024.jpg" alt="Some alt text">
+        </div>
+    </section>
 
