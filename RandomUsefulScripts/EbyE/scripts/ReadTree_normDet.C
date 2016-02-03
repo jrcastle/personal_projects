@@ -120,7 +120,7 @@ void ReadTree_normDet(){
 	  hVn2D0v1[n][c] = new TH2D(Form("hVn2D0v1_%i_%i", n, c), Form("hVn2D0v1_%i_%i", n, c), Nbins_2SEDiff, -v2_2SEdiffMax[c], v2_2SEdiffMax[c], Nbins_2SEDiff, -v2_2SEdiffMax[c], v2_2SEdiffMax[c]);
 	  hVn2D0v1[n][c]->SetOption("colz");
 	  hVn2D0v1[n][c]->GetXaxis()->SetTitle(Form("v_{%i,x}^{obs,a} - v_{%i,x}^{obs,b}",n,n));
-	  hVn2D0v1[n][c]->GetXaxis()->SetTitle(Form("v_{%i,y}^{obs,a} - v_{%i,y}^{obs,b}",n,n));
+	  hVn2D0v1[n][c]->GetYaxis()->SetTitle(Form("v_{%i,y}^{obs,a} - v_{%i,y}^{obs,b}",n,n));
 
 	  hVnFull[n][c] = new TH1D(Form("hVnFull_%i_%i", n, c), Form("hVnFull_%i_%i", n, c), Nbins, v2Min, v2Max);
 	  hVnFull[n][c]->GetXaxis()->SetTitle(Form("v_{%i}^{obs}",n));

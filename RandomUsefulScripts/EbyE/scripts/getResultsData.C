@@ -140,6 +140,9 @@ void getResultsData(){
         h2D_Sub0[icent] = (TH2D*) f_Unfold->Get(Form("h2Dsub0_2_%i",icent));
         h2D_Sub1[icent] = (TH2D*) f_Unfold->Get(Form("h2Dsub1_2_%i",icent));
         
+	h1D_SubX[icent]->GetXaxis()->SetTitle("v_{2,x}^{obs,a} - v_{2,x}^{obs,b}");
+	h1D_SubY[icent]->GetXaxis()->SetTitle("v_{2,y}^{obs,a} - v_{2,y}^{obs,b}");
+
         h2D_Sub0[icent]->GetXaxis()->SetTitle("v_{2,x}^{obs,a}");
         h2D_Sub1[icent]->GetXaxis()->SetTitle("v_{2,x}^{obs,b}");
         
