@@ -1,3 +1,4 @@
+#include "~/tdrstyle.C"
 #include "TFile.h"
 #include "TTree.h"
 #include "TCanvas.h"
@@ -59,6 +60,7 @@ TH1D * hV2DetY_TkEff_full;
 //
 void ReadTree_normDet(){
     
+    setTDRStyle();
     TH1D::SetDefaultSumw2();
 
     tf = new TFile(fileName);
