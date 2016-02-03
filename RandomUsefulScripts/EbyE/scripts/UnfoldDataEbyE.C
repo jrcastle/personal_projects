@@ -1,3 +1,4 @@
+#include "tdrstyle.C"
 #include "RooUnfoldBayes.h"
 #include "RooUnfoldResponse.h"
 #include "TLatex.h"
@@ -105,7 +106,8 @@ TH1D * hVnSub0[NVn][NCENT40];
 TH1D * hVnSub1[NVn][NCENT40];
 
 void UnfoldDataEbyE(){
-  
+
+  setTDRStyle();
   TFile * fsave = new TFile(Form("~/root/macros/EbyE/macros/txt/PbPb_2015/data%i.root", VN), "recreate");
 
   //--Get histos from datafile

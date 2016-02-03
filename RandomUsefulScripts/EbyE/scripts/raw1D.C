@@ -22,9 +22,8 @@
 //	int VN = 4;
 	int SAVE = 1;
 #include "label.h"
-#include "style.h"
-	SetStyle();
-	gStyle->SetOptTitle(0);
+#include "tdrstyle.C"
+	setTDRStyle();
 	TFile* f = new TFile(Form("~/root/macros/EbyE/macros/data/%s", fname[s1]));
 	gROOT->Macro("ebye.C");
 

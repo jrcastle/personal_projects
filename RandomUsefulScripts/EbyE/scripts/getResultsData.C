@@ -319,8 +319,8 @@ void getResultsData(){
         double chi2_x  = fitx[icent]->GetChisquare();
         double ndf_x = fitx[icent]->GetNDF();
         h1D_SubX[icent]->Draw();
-        latex[icent]->DrawLatex(-0.2, 500, Form("#splitline{#chi^{2}/NDF = %f}{#splitline{#delta_{2SE} = %f}{#pm%f}}", chi2_x/ndf_x, sigma_x, sigma_xe));
-        latex[icent]->DrawLatex(-0.2, 50, Form("Mean = %f", mean_x));
+        //latex[icent]->DrawLatex(-0.2, 500, Form("#splitline{#chi^{2}/NDF = %f}{#splitline{#delta_{2SE} = %f}{#pm%f}}", chi2_x/ndf_x, sigma_x, sigma_xe));
+        //latex[icent]->DrawLatex(-0.2, 50, Form("Mean = %f", mean_x));
         //tp_cmspreliminary[icent]->Draw();
         c0[icent]->SaveAs(Form("plots/SubXFit_cent_%.0f_%.0f.png",cent_min[icent],cent_max[icent]));
         c0[icent]->Close();
@@ -335,8 +335,8 @@ void getResultsData(){
         double chi2_y  = fity[icent]->GetChisquare();
         double ndf_y = fity[icent]->GetNDF();
         h1D_SubY[icent]->Draw();
-        latex[icent]->DrawLatex(-0.2, 500, Form("#splitline{#chi^{2}/NDF = %f}{#splitline{#delta_{2SE} = %f}{#pm%f}}", chi2_y/ndf_y, sigma_y, sigma_ye));
-        latex[icent]->DrawLatex(-0.2, 50, Form("Mean = %f", mean_y));
+        //latex[icent]->DrawLatex(-0.2, 500, Form("#splitline{#chi^{2}/NDF = %f}{#splitline{#delta_{2SE} = %f}{#pm%f}}", chi2_y/ndf_y, sigma_y, sigma_ye));
+        //latex[icent]->DrawLatex(-0.2, 50, Form("Mean = %f", mean_y));
         //tp_cmspreliminary[icent]->Draw();
         c1[icent]->SaveAs(Form("plots/SubYFit_cent_%.0f_%.0f.png",cent_min[icent],cent_max[icent]));
         c1[icent]->Close();
