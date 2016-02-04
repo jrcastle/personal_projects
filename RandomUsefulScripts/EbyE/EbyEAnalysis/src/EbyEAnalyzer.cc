@@ -316,7 +316,7 @@ EbyEAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByToken(CentralityBinTag_,cbin_);
     int hiBin = *cbin_; //HF tower centrality
     int hiBinHF = hiBin;
-    centval = 0.5 * hiBinHF;
+    centval = 0.5 * (hiBinHF + 0.5);
     //
     //Get Vertex
     //
