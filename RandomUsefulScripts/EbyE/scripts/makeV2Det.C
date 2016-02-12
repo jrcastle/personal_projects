@@ -10,22 +10,22 @@
 
 //unsigned int selectedRun = 182972;
 double vtxCut= 15.;
-TString fileName = "/rfs/jcastle/PbPb2015/EbyETree_InitialTest_TkEffBlackBox_Runs262620-263035.root";
+TString fileName = "";
 
 const int NCENT_PBPB = 40;
 double cent_min[NCENT_PBPB] = {0.0 ,2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0, 42.5, 45.0, 47.5, 50.0, 52.5, 55.0, 57.5, 60.0, 62.5, 65.0, 67.5, 70.0, 72.5, 75.0, 77.5, 80.0, 82.5, 85.0, 87.5, 90.0, 92.5, 95.0, 97.5};
 double cent_max[NCENT_PBPB] = {2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0, 42.5, 45.0, 47.5, 50.0, 52.5, 55.0, 57.5, 60.0, 62.5, 65.0, 67.5, 70.0, 72.5, 75.0, 77.5, 80.0, 82.5, 85.0, 87.5, 90.0, 92.5, 95.0, 97.5, 100.0};
 static const double centBinsDefault[] = {0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0,42.5, 45.0, 47.5, 50.0, 52.5, 55.0, 57.5, 60.0, 62.5, 65.0, 67.5, 70.0, 72.5, 75.0, 77.5, 80.0, 82.5, 85.0, 87.5, 90.0, 92.5, 95.0, 97.5, 100.0};
 
-static const int nptbinsDefault = 16;
-static const double ptbinsDefault[]={0.2,  0.3,  0.4,  0.5,  0.6,  0.8,  1.0,  1.2,  1.6,  2.0, 2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  8.0};
-static const int netabinsDefault = 12;
-static const double etabinsDefault[]={-2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0.0,  0.4,  0.8, 1.2,  1.6,  2.0,  2.4};
+static const int nptbinsDefault = 11;
+static const double ptbinsDefault[]={1.00, 1.25, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 5.00, 6.00, 7.00, 8.00};
+static const int netabinsDefault = 14;
+static const double etabinsDefault[]= {-2.4, -2.0, -1.6, -1.2, -1.0, -0.8, -0.4, 0.0, 0.4, 0.8, 1.0, 1.2, 1.6, 2.0, 2.4};
 
-static const int ptBinMin = 7;  //-- for(int ipt = ptBinMin; ipt <= ptBinMax; ipt++) --> GetBinContent(ipt+1,ieta+1);
-static const int ptBinMax = 16;
-static const int etaBinMin = 0; //-- for(int ieta = etaBinMin; ieta <= etaBinMax; ieta++) --> GetBinContent(ipt+1,ieta+1);
-static const int etaBinMax = 12;
+static const int ptBinMin = 4;  //-- for(int ipt = ptBinMin; ipt <= ptBinMax; ipt++) --> GetBinContent(ipt+1,ieta+1);
+static const int ptBinMax = 4;
+static const int etaBinMin = 4; //-- for(int ieta = etaBinMin; ieta <= etaBinMax; ieta++) --> GetBinContent(ipt+1,ieta+1);
+static const int etaBinMax = 9;
 
 TFile * tf;
 
