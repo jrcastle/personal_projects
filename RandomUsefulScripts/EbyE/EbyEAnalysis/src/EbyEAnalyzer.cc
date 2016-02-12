@@ -72,14 +72,20 @@ using namespace std;
 //#include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
 //#include "RecoHI/HiEvtPlaneAlgos/interface/LoadEPDB.h"
 
+/*
 static const int nptbinsDefault = 16;
 static const double ptbinsDefault[]={
     0.2,  0.3,  0.4,  0.5,  0.6,  0.8,  1.0,  1.2,  1.6,  2.0,
     2.5,  3.0,  3.5,  4.0,  5.0,  6.0,  8.0};
 static const int netabinsDefault = 12;
 static const double etabinsDefault[]={-2.4, -2.0, -1.6, -1.2,
-    -0.8, -0.4, 0.0,  0.4,  0.8,
-    1.2,  1.6,  2.0,  2.4};
+				      -0.8, -0.4, 0.0,  0.4,  0.8,
+				      1.2,  1.6,  2.0,  2.4};
+*/
+static const int nptbinsDefault = 11;                                                                                                                                                                                            
+static const double ptbinsDefault[]={1.00, 1.25, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 5.00, 6.00, 7.00, 8.00};
+static const int netabinsDefault = 14;
+static const double etabinsDefault[]= {-2.4, -2.0, -1.6, -1.2, -1.0, -0.8, -0.4, 0.0, 0.4, 0.8, 1.0, 1.2, 1.6, 2.0, 2.4};
 
 static const int NCENT = 10;
 double centBinWidth = 10.;

@@ -26,7 +26,7 @@ process.options = cms.untracked.PSet(wantSummary = cms.untracked.bool(True))
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        'file:/afs/cern.ch/work/j/jcastle/HIFlowCorr-PromptReco-AOD/9EAF711E-CD9A-E511-8C9A-02163E0142D9.root'
+        'file:/afs/cern.ch/work/j/jcastle/HIMinimumBias2-PromptReco-AOD/0C6659E3-62A7-E511-AB11-02163E011CCA.root'
   )
 )
 

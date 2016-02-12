@@ -4,7 +4,7 @@ from CRABClient.UserUtilities import getUsernameFromSiteDB
 config.section_('General')
 config.General.requestName = 'EbyEPbPb2015_HIMinimumBias2_Check'
 config.General.transferOutputs = True
-config.General.transferLogs = True
+config.General.transferLogs = False
 config.section_('JobType')
 config.JobType.outputFiles = ['EbyETree_minbias.root']
 config.JobType.pyCfgParams = ['noprint']
@@ -45,12 +45,12 @@ if __name__ == '__main__':
    #############################################################################################
 submit(config)
 
-config.General.requestName = 'EbyEPbPb2015_HIMinimumBias3_Check'
-config.Data.inputDataset = '/HIMinimumBias3/HIRun2015-PromptReco-v1/AOD'
-config.Data.outLFNDirBase = '/store/user/jcastle/EbyEPbPb2015_HIMinimumBias3_Check'
-submit(config)
+#config.General.requestName = 'EbyEPbPb2015_HIMinimumBias3_Check'
+#config.Data.inputDataset = '/HIMinimumBias3/HIRun2015-PromptReco-v1/AOD'
+#config.Data.outLFNDirBase = '/store/user/jcastle/EbyEPbPb2015_HIMinimumBias3_Check'
+#submit(config)
 
-config.General.requestName = 'EbyEPbPb2015_HIMinimumBias4_Check'
-config.Data.inputDataset = '/HIMinimumBias4/HIRun2015-PromptReco-v1/AOD'
-config.Data.outLFNDirBase = '/store/user/jcastle/EbyEPbPb2015_HIMinimumBias4_Check'
-submit(config)
+#config.General.requestName = 'EbyEPbPb2015_HIMinimumBias4_Check'
+#config.Data.inputDataset = '/HIMinimumBias4/HIRun2015-PromptReco-v1/AOD'
+#config.Data.outLFNDirBase = '/store/user/jcastle/EbyEPbPb2015_HIMinimumBias4_Check'
+#submit(config)
