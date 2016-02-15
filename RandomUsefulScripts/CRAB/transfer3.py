@@ -21,6 +21,7 @@ for line in fileList:
     fName = line.split("/")[9]
     ##-- Check to see if the file is already in the working directory.  If so, delete it.  Else xrdcp will complain
     if os.path.exists(fName):
+        print str(fName) + " already exists in this directory, removing it now..."
         command = "rm " + str(fName)
         os.system(command)
     command = "xrdcp root://cmsxrootd.fnal.gov/" + str(line) + " " + str(fName)
