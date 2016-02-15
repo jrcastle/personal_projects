@@ -10,10 +10,8 @@
 ##--
 ##-- Sample lcg-ls command for Vanderbilt:
 ##-- lcg-ls -b -D srmv2 'srm://se1.accre.vanderbilt.edu:6288/srm/v2/server?SFN=/lio/lfs/cms/store/user/'
-import os
-import random
 
-random.seed()
+import os
 
 ##-- Output files
 f1 = "files1.txt"
@@ -50,29 +48,29 @@ if os.path.exists(f5):
 
 ##-- Open the master list
 f = open("MASTER.txt")
+fList = f.readlines()
+NFiles = len(fList)
+fCount = 1
 
-##-- Loop through the master list and use an RNG to split the master list into 5 separate files
-for line in f.readlines():
+##-- Loop through the master list and split the master list into 5 separate files
+for line in fList:
     line=line.replace("\n","")
 
-    i = random.randrange(1,6,1)
+    fPercent = float( float( fCount ) / float( NFiles ) )
 
-    if i == 1:
+    if fPercent <= 0.2:
         command = "echo \"" + str(line) + "\" >> " + str(f1)
-    if i == 2:
+    if fPercent > 0.2 and fPercent <= 0.4:
         command = "echo \"" + str(line) + "\" >> " + str(f2)
-    if i == 3:
+    if fPercent > 0.4 and fPercent <= 0.6:
         command = "echo \"" + str(line) + "\" >> " + str(f3)
-    if i == 4:
+    if fPercent > 0.6 and fPercent <= 0.8:
         command = "echo \"" + str(line) + "\" >> " + str(f4)
-    if i == 5:
+    if fPercent > 0.8 and fPercent <= 1.0:
         command = "echo \"" + str(line) + "\" >> " + str(f5)
 
-    ##-- Check if the RNG is working like you think it should...
-    if i > 5 or i < 1:
-        print "You screwed up!  Try again..."
-        break
     os.system(command)
+    fCount = fCount + 1
 ##-- ENDFOR
 
 print "DONE!"
