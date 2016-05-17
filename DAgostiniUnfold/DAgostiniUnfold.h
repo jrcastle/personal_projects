@@ -37,7 +37,7 @@ class DAgostiniUnfold{
   void SetPrior(TH1D * hPrior, int iter);
 
  private:
-  TH3D * respErrMat_;          //-- The error matrix for each iteration that arises from the uncertainties on the respose matrix elements
+  TH2D * respErrMat_;          //-- The error matrix for each iteration that arises from the uncertainties on the respose matrix elements
   TH2D * hresp_;               //-- Response matrix p( ei | cj ) with dimensions truth VS observed
   TH2D * Mij_;                 //-- The unfolding matrix with dimensions truth vs observed
   TH2D * obsErrMat_;           //-- The error matrix for each iteration that arises from the statistical uncertainties in the observed distributions
@@ -72,21 +72,6 @@ DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp){
   //-- Normalize the response matrix by the projection onto the truth axis
   TH1D * hy = (TH1D*) hresp_->ProjectionY();
   SetPrior(hy, 0);
-  /*
-  for(int x = 1; x <= Nobs; x++){
-    double sum   = 0.;
-    for(int y = 1; y <= Ntru; y++){
-      sum += hresp_->GetBinContent(x, y);
-    }
-    if(sum == 0) continue;
-    for(int y = 1; y <= Ntru; y++){
-      double binCont   = hresp_->GetBinContent(x, y);
-      double binErr    = hresp_->GetBinError(x, y);
-      hresp_->SetBinContent(x, y, binCont / sum);
-      hresp_->SetBinError(x, y, binErr / sum);
-    }
-  }
-  */
   for(int y = 1; y <= Ntru; y++){
     double ntrue = hy->GetBinContent(y);
     if(ntrue==0){
@@ -108,25 +93,24 @@ DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp){
   //-- Create a std::vector that contains the detection efficiencies for each truth bin
   makeEfficiencyVector();
 
-  //-- Initialize the TH3D that corresponds to the error propagation matrix for the response matrix
+  //-- Initialize the TH2D that corresponds to the error propagation matrix for the response matrix
+  //-- In this case we'll collaps the i and k elements onto the x axis of the TH2D.  Details in the
+  //-- computeObsErrMatrix method
+  //--
   //-- dn(cj)/dP( ei | ck )
   //-- The respective axes correspond to:
-  //-- x <==> ei
+  //-- x <==> ei ck
   //-- y <==> cj
-  //-- z <==> ck
 
   int nx = Nobs;
   int ny = Ntru;
-  int nz = Ntru;
 
   double xL = hresp_->ProjectionX()->GetBinLowEdge(1);
   double xH = hresp_->ProjectionX()->GetBinLowEdge(Nobs) + hresp_->ProjectionX()->GetBinWidth(Nobs);
   double yL = hresp_->ProjectionY()->GetBinLowEdge(1);
   double yH = hresp_->ProjectionY()->GetBinLowEdge(Ntru) + hresp_->ProjectionY()->GetBinWidth(Ntru);
-  double zL = yL;
-  double zH = yH;
 
-  respErrMat_ = new TH3D("respErrMat_0", "respErrMat_0", nx, xL, xH, ny, yL, yH, nz, zL, zH);
+  respErrMat_  = new TH2D("respErrMat_0", "respErrMat_0", nx*ny, xL, xH, ny, yL, yH);
 
   //-- Initialize the covariance matrices for the respective error propagation matrices, which will build
   //-- the final covariance martrix for the unfolded distribution Cov_unfold = Cov_obs + Cov_resp
@@ -296,29 +280,56 @@ int DAgostiniUnfold::computeRespCovMatrix(int iter){
 
   respCovMat_->Reset();
 
+  //-- Cov_KL = A_Kj * B_jr * (A^T)_rL
+  //-- A_Kj = response error propagation matrix
+  //-- B_jr = diagonal matrix of the variances of each bin of the response matrix.
+  //-- K = 1...Ntru
+  //-- L = 1...Ntru
+  //-- j = 1...Nobs*Ntru
+  //-- r = 1...Nobs*Nrtu
+
   for(int k = 1; k <= Ntru; k++){
     for(int L = 1; L <= Ntru; L++){
 
-      double quadSum = 0.;
-      for(int j = 1; j <= Nobs; j++){
-	for(int s = 1; s <= Nobs; s++){
-	  for(int i = 1; i <= Ntru; i++){
-	    for(int r = 1; r <= Ntru; r++){
+      int    binjC = 1;
+      int    binjE = 0;
+      double sumj = 0;
 
-	      double dnCkdPji = respErrMat_->GetBinContent(j, k, i);
-	      double cov;
-	      if(j == s) cov = hresp_->GetBinContent(j, i) * ( 1 - hresp_->GetBinContent(j, i) );
-	      else       cov = -1. * hresp_->GetBinContent(j, i) * hresp_->GetBinContent(s, r);
-	      double dnCLdPsr = respErrMat_->GetBinContent(s, L, r);
+      for(int j = 1; j <= Nobs*Ntru; j++){
 
-	      quadSum += dnCkdPji * cov* dnCLdPsr;
+	int    binrC = 1;
+	int    binrE = 0;
+	double sumr = 0;
 
-	    }
+	//-----
+	for(int r = 1; r <= Nobs*Ntru; r++){
+	
+	  binrE++;
+	  if( binrE > Nobs){
+	    binrE = 1;
+	    binrC++;
 	  }
-	}
-      } //-- End quadSum
 
-      respCovMat_->SetBinContent(k, L , quadSum);
+	  double respVar_xy = pow( hresp_->GetBinError(binrE, binrC), 2 );
+	  double respErrMatT_rL = respErrMat_->GetBinContent(L, r);
+	  sumr += respVar_xy * respErrMatT_rL; 
+
+	}
+	//----
+
+	binjE++;
+	if( binjE > Nobs){
+	  binjE = 1;
+	  binjC++;
+	}
+
+	double respVar_xy = pow( hresp_->GetBinError(binjE, binjC), 2 );
+	double respErrMat_kj = respErrMat_->GetBinContent(k, j);
+	sumj += respErrMat_kj * respVar_xy * sumr;
+
+      }
+
+      respCovMat_->SetBinContent(k, L , sumj);
       
     }
   }
@@ -336,10 +347,9 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
   std::cout<<"Computing the response error propagation matrix for iteration "<<iter<<std::endl;
 
   //-- dn(cj)/dP( ei | ck )
-  //-- Using a TH3D to represent this, so the respective axes correspond to:
-  //-- x <==> ei 
+  //-- Using a TH2D to represent this, so the respective axes correspond to:
+  //-- x <==> ei ck 
   //-- y <==> cj
-  //-- z <==> ck
 
   if(iter == 0){
 
@@ -362,7 +372,21 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
           if(fi == 0) return 0;
 
 	  double dncj_dPeick = (1/epsj) * ( n0Cj * nEi / fi - nHatCj ) * kronDelta(j,k) - ( n0Ck * nEi / fi ) * Mij;
-	  respErrMat_->SetBinContent(i, j, k, dncj_dPeick);
+
+	  //-- Collapse i and k to the "x" dimension of the matrix
+	  //-- 
+	  //--  y=1  __                                                         __
+	  //--   .   |                                                           |
+	  //--   .   |                                                           |
+	  //--   .   |  k=1          k=2           k=3        ...         k=nC   |
+	  //--   .   |                                                           |
+	  //--   .   |                                                           |
+	  //--  y=nC --                                                         --
+	  //--        i=1...nE   i=nE+1...2nE   i=2nE+1...3nE ... i=(nC-1)nE+1...nCnE
+
+
+	  int bin = i + ( k-1 ) * Nobs;
+	  respErrMat_->SetBinContent(bin, j, dncj_dPeick);
 
 	}
       }
@@ -382,7 +406,7 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
       return 0;
     }
 
-    TH3D respErrMatPrev_ = *respErrMat_;
+    TH2D respErrMatPrev_ = *respErrMat_;
     respErrMat_->SetName( Form("respErrMat_%i", iter) );
 
     for(int i = 1; i <= Nobs; i++){
@@ -395,7 +419,9 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
           double nHatCj       = hReco_->GetBinContent(j);
           double n0Ck         = hPrior_->GetBinContent(k);
           double Mij          = Mij_->GetBinContent(i, j);
-	  double prevIter_ijk = respErrMatPrev_.GetBinContent(i, j, k);
+
+	  int bin = i + ( k-1 ) * Nobs;
+	  double prevIter_ijk = respErrMatPrev_.GetBinContent(bin, j);
 
 	  double sumfi = 0.;
 	  for(int L = 1; L <= Ntru; L++) sumfi += hresp_->GetBinContent(i, L) * hPrior_->GetBinContent(L);
@@ -409,7 +435,9 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 	      double nEL          = hObs_->GetBinContent(L);
 	      double MLj          = Mij_->GetBinContent(L, j);
 	      double MLr          = Mij_->GetBinContent(L, r);
-	      double prevIter_irk = respErrMatPrev_.GetBinContent(i, r, k);
+
+	      int bin = i + ( k-1 ) * Nobs;
+	      double prevIter_irk = respErrMatPrev_.GetBinContent(bin, r);
 
 	      doubSum += nEL * MLj * MLr * prevIter_irk;
 
@@ -417,11 +445,11 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 	  } //-- End doubSum loop
 
           double dncj_dPeick = (1/epsj) * ( n0Cj * nEi / fi - nHatCj ) * kronDelta(j,k) - ( n0Ck * nEi / fi ) * Mij + (nHatCj / n0Cj) * prevIter_ijk - (epsj / n0Cj) * doubSum;
-	  respErrMat_->SetBinContent(i, j, k,dncj_dPeick);
+	  respErrMat_->SetBinContent(bin, j, dncj_dPeick);
 
         }
       }
-    } //-- End TH3D loop
+    } //-- End TH2D loop
 
     return 1;
 
