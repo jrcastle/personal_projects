@@ -5,14 +5,14 @@
 #include "/home/j550c590/CMSSW_7_5_8_patch2/src/HeavyIonsAnalysis/EbyEAnalysis/macros/unfolding/RooUnfold/src/RooUnfoldBayes.h"
 #include "/home/j550c590/CMSSW_7_5_8_patch2/src/HeavyIonsAnalysis/EbyEAnalysis/macros/unfolding/RooUnfold/src/RooUnfold.h"
 #include "TLine.h"
-#include "TLegend.h"
 #include "TH1D.h"
 #include "TH2D.h" 
+#include "TLegend.h"
 #include "TLatex.h"
 #include "TFile.h"
 #include "TCanvas.h"
 
-void testDAgostiniUnfold(){
+void testDAgostiniPriorUnfold(){
 
   bool validate = 1;
   int ptBin     = 0;
@@ -39,9 +39,11 @@ void testDAgostiniUnfold(){
   //-- Unfolding data
   TH2D * hresp[NCENT];
   TH1D * h1D[NCENT];
+  TH1D * hTrue[NCENT];
   TH1D * hreco1[NCENT][NITER];
   TH1D * hreco1_RU[NCENT][NITER];
-  TH1D * hratio[NCENT][NITER];
+  TH1D * hratio_ME[NCENT][NITER];
+  TH1D * hratio_RU[NCENT][NITER];
   RooUnfoldResponse * RUresp[NCENT];
   RooUnfoldBayes * RUBayes[NCENT][NITER];
 
@@ -51,6 +53,7 @@ void testDAgostiniUnfold(){
   line->SetLineWidth(2);
 
   TLegend * leg[NCENT][NITER];
+
   TCanvas * cIter[NCENT][NITER];
 
   //-- Get DATA
@@ -68,6 +71,12 @@ void testDAgostiniUnfold(){
 
     if(c != centBin) continue;
     std::cout<<"!! Processing Cent = "<<c<<std::endl;
+
+    //-- True distribution
+    hTrue[c] = (TH1D*) fMC->Get("ebyeana/hV2True");
+    hTrue[c]->SetLineColor(1);
+    hTrue[c]->SetMarkerColor(1);
+    hTrue[c]->SetMarkerStyle(21);
 
     //-- Observed distribution
     h1D[c] = (TH1D*)hVnFull[VN][4*c]->Clone(Form("h1D_%i_%i", VN, c));
@@ -91,15 +100,17 @@ void testDAgostiniUnfold(){
       hreco1[c][i]    = 0;
       hreco1_RU[c][i] = 0;
 
-      DAgostiniUnfold unfolder(hresp[c]);
-      unfolder.Unfold(h1D[c], iter[i]);
+      DAgostiniUnfold * unfolder = new DAgostiniUnfold(hresp[c]);
+      unfolder->Unfold(h1D[c], iter[i], hTrue[c]);
 
-      hreco1[c][i] = (TH1D*) unfolder.GetHReco( Form("hreco1_%ci_iter%i", c, iter[i]) );
+      hreco1[c][i] = (TH1D*) unfolder->GetHReco( Form("hreco1_%ci_iter%i", c, iter[i]) );
       hreco1[c][i]->GetXaxis()->SetTitle("v_{2}");
       hreco1[c][i]->GetYaxis()->SetTitle("Events");
       hreco1[c][i]->SetLineColor(col[i]);
       hreco1[c][i]->SetMarkerColor(col[i]);
       hreco1[c][i]->SetMarkerStyle(20);
+
+      delete unfolder;
 
       RUBayes[c][i] = new RooUnfoldBayes(RUresp[c], h1D[c], iter[i]);
       hreco1_RU[c][i] = (TH1D*) RUBayes[c][i]->Hreco();
@@ -109,10 +120,22 @@ void testDAgostiniUnfold(){
       hreco1_RU[c][i]->SetMarkerColor(col[i+4]);
       hreco1_RU[c][i]->SetMarkerStyle(24);
 
-      hratio[c][i] = (TH1D*) hreco1[c][i]->Clone( Form("ratio_%i", i ) );
-      hratio[c][i]->Divide( hreco1_RU[c][i] );
-      hratio[c][i]->GetXaxis()->SetTitle("v_{2}");
-      hratio[c][i]->GetYaxis()->SetTitle("Ratio");
+      hratio_ME[c][i] = (TH1D*) hreco1[c][i]->Clone( Form("ratio_ME%i", i ) );
+      hratio_ME[c][i]->Divide( hTrue[c] );
+      hratio_ME[c][i]->GetXaxis()->SetTitle("v_{2}");
+      hratio_ME[c][i]->GetYaxis()->SetTitle("Ratio");
+
+      hratio_RU[c][i] = (TH1D*) hreco1_RU[c][i]->Clone( Form("ratio_RU%i", i ) );
+      hratio_RU[c][i]->Divide( hTrue[c] );
+      hratio_RU[c][i]->GetXaxis()->SetTitle("v_{2}");
+      hratio_RU[c][i]->GetYaxis()->SetTitle("Ratio");
+
+      leg[c][i] = new TLegend(0.7, 0.7, 0.9, 0.9);
+      leg[c][i]->SetFillStyle(0);
+      leg[c][i]->SetBorderSize(0);
+      leg[c][i]->AddEntry(hTrue[c], "MC Truth", "lp");
+      leg[c][i]->AddEntry(hratio_ME[c][i], "CastleUnfold", "lp");
+      leg[c][i]->AddEntry(hratio_RU[c][i], "RooUnfold", "lp");
 
       /*
       TH1D * hratioErr = (TH1D*) hratio->Clone("hratioErr");
@@ -132,24 +155,20 @@ void testDAgostiniUnfold(){
       }
       */
 
-      leg[c][i] = new TLegend(0.7, 0.7, 0.9, 0.9);
-      leg[c][i]->SetFillStyle(0);
-      leg[c][i]->SetBorderSize(0);
-      leg[c][i]->AddEntry(hreco1[c][i], "CastleUnfold", "lp");
-      leg[c][i]->AddEntry(hreco1_RU[c][i], "RooUnfold", "lp");
-
       cIter[c][i] = new TCanvas( Form("citer_c%i_iter%i", c, iter[i]), Form("citer_c%i_iter%i", c, iter[i]), 500, 1000);
       cIter[c][i]->Divide(1,2);
       cIter[c][i]->cd(1);
       cIter[c][i]->cd(1)->SetLogy();
-      hreco1[c][i]->Draw();
+      hTrue[c]->Draw();
+      hreco1[c][i]->Draw("same");
       hreco1_RU[c][i]->Draw("same");
       leg[c][i]->Draw("same");
       latex.DrawLatex(0.2, 0.22, Form("N_{iter} = %i", iter[i]) );
       cIter[c][i]->cd(2);
-      hratio[c][i]->Draw();
+      hratio_ME[c][i]->Draw();
+      hratio_RU[c][i]->Draw("same");
 
-      cIter[c][i]->SaveAs( Form("plots/citer_c%i_iter%i.png", c, iter[i]) );
+      cIter[c][i]->SaveAs( Form("plots/citerPrior_c%i_iter%i.png", c, iter[i]) );
 
     } //-- End iter loop
 
