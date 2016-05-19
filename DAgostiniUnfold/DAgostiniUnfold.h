@@ -2,9 +2,12 @@
 //--       "A multidimensional unfolding method based on Bayes' theorem", D'Agostini, NIM-A 362, 487
 //-- Error propagation based on improved approach to D'Agostini as outlined in:
 //--       http://hepunx.rl.ac.uk/~adye/software/unfold/bayes_errors.pdf
+//-- Some methods in this class were stolen directly from the RooUnfoldBayes class.  Class reference and credit can be found here: 
+//--       http://arxiv.org/pdf/1105.1160.pdf
 
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "TH1D.h"
 #include "TH2D.h"
@@ -26,6 +29,7 @@ class DAgostiniUnfold{
   int computeObsErrMatrix(int iter);
   int computeRespCovMatrix(int iter);
   int computeRespErrMatrix(int iter);
+  void DoSystematics();
   TMatrixD H2M(TH2D * h);
   TMatrixD H2M(TH2D * h, TMatrixD &Mw2);
   TVectorD H2V(TH1D * h);
@@ -34,6 +38,7 @@ class DAgostiniUnfold{
   TH2D * M2H(TMatrixD M,TH2D * h);
   void makeEfficiencyVector();
   void makeRespCov0();
+  TH1D * refold(TH1D * hreco, string name);
   int Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior = 0);
   TH1D * V2H(TH1D * h, TVectorD v);
   TH1D * V2H(TH1D * h, TVectorD v, TVectorD vw2);
@@ -42,35 +47,34 @@ class DAgostiniUnfold{
   TH1D * GetHReco(string name);
   TH2D * GetHRecoCov(string name);
 
-  //-- Setters
-  void SetPrior(TVectorD vPrior);
-
  private:
-  TMatrixD mResp_;             //-- Response matrix p( ei | cj ) with dimensions truth VS observed
-  TMatrixD mRespw2_;           //-- Variance of each element of the response matrix with dimensions truth VS observed
+  TMatrixD mResp_;        //-- Response matrix p( ei | cj ) with dimensions truth VS observed
+  TMatrixD mRespw2_;      //-- Variance of each element of the response matrix with dimensions truth VS observed
 
-  TMatrixD Mij_;               //-- The unfolding matrix with dimensions truth vs observed 
-  TMatrixD obsErrMat_;         //-- The error matrix for each iteration that arises from the statistical uncertainties in the observed distributions
-  TMatrixD respErrMat_;        //-- The error matrix for each iteration that arises from the uncertainties on the respose matrix elements
-  TMatrixD obsCovMat_;         //-- The covariance matrix for each iteration that arises from the statistical uncertainties in the observed distributions
-  TMatrixD respCovMat_;        //-- The covariance matrix for each iteration that arises from the statistical uncertainties in the response matrix elements 
-  TMatrixD recoCovMat_;        //-- The covariance matrix for the final, unfolded distribution.  Equal to the sum of obsCovMat_ + respCovMat_
+  TMatrixD Mij_;          //-- The unfolding matrix with dimensions truth vs observed 
+  TMatrixD obsErrMat_;    //-- The error matrix for each iteration that arises from the statistical uncertainties in the observed distributions
+  TMatrixD respErrMat_;   //-- The error matrix for each iteration that arises from the uncertainties on the respose matrix elements
+  TMatrixD obsCovMat_;    //-- The covariance matrix for each iteration that arises from the statistical uncertainties in the observed distributions
+  TMatrixD respCovMat_;   //-- The covariance matrix for each iteration that arises from the statistical uncertainties in the response matrix elements 
+  TMatrixD recoCovMat_;   //-- The covariance matrix for the final, unfolded distribution.  Equal to the sum of obsCovMat_ + respCovMat_
 
-  TVectorD respCov0_;          //-- Special vector version of mRespw2_. Made specifically for the method computeRespCovMatrix(int iter)
+  TVectorD respCov0_;     //-- Special vector version of mRespw2_. Made specifically for the method computeRespCovMatrix(int iter)
 
-  TVectorD vObs_;              //-- Vector of the observed, smeared histogram
-  TVectorD vObsw2_;            //-- Vector of the variances on the observed, smeared histogram
-  TVectorD vPrior_;            //-- "Prior" vector, before iterations it will be the guess at the true, underlying vector
-  TVectorD vReco_;             //-- Unfolded vector
-  TVectorD vRecow2_;           //-- Variances on the unfolded vector
-  TVectorD foldPrior_;         //-- The response matrix applied to the prior vector
+  TVectorD vObs_;         //-- Vector of the observed, smeared histogram
+  TVectorD vObsw2_;       //-- Vector of the variances on the observed, smeared histogram
+  TVectorD vPrior_;       //-- "Prior" vector, before iterations it will be the guess at the true, underlying vector
+  TVectorD vReco_;        //-- Unfolded vector
+  TVectorD vRecow2_;      //-- Variances on the unfolded vector
+  TVectorD foldPrior_;    //-- The response matrix applied to the prior vector
 
-  TH2D * hResp_;               //-- Response matrix p( ei | cj ) as a histogram with dimensions truth VS observed
+  TH2D * hResp_;          //-- Response matrix p( ei | cj ) as a histogram with dimensions truth VS observed
+
+  vector<double> effVec_; //-- Detection efficiency vector = Sum[ P( ei | cj ) , { i, 1, Nobs} ]
 
   int kiter_;
-  int Nobs;                    //-- Number of bins in the observed histogram
-  int Ntru;                    //-- Number of bins in the true histogram
-  std::vector<double> effVec_; //-- Detection efficiency vector = Sum[ P( ei | cj ) , { i, 1, Nobs} ]
+  int Nobs;               //-- Number of bins in the observed histogram
+  int Ntru;               //-- Number of bins in the true histogram
+  bool dosys_;            //-- Choice to propagate uncertainties on the response matrix. These are regarded as systematic uncertainties
 
 };
 
@@ -83,20 +87,20 @@ DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp){
 
   std::cout<<"Constructing a new DAgostiniUnfold object..."<<std::endl;
   hResp_ = 0;
+  dosys_ = 0;
 
   //-- Store the response matrix into a class member
   hResp_ = (TH2D*) hresp->Clone("hResp_");
+  TH1D * hy = (TH1D*) hResp_->ProjectionY();
   Nobs   = hResp_->GetNbinsX();
   Ntru   = hResp_->GetNbinsY();
-
-  //-- Normalize the response matrix by the projection onto the truth axis
-  TH1D * hy = (TH1D*) hResp_->ProjectionY();
 
   //-- Initialize the vector corresponding to the prior distribution
   vPrior_.ResizeTo(Ntru);
   TVectorD vy = H2V(hy);
-  SetPrior(vy);
+  vPrior_ = vy;
 
+  //-- Normalize the response matrix by the projection onto the truth axis
   for(int y = 1; y <= Ntru; y++){
     double ntrue = hy->GetBinContent(y);
     if(ntrue==0){
@@ -174,8 +178,9 @@ DAgostiniUnfold::~DAgostiniUnfold(){
 
 TMatrixD DAgostiniUnfold::ABAT (TMatrixD a, TVectorD b, TMatrixD c){
 
-  // Fills C such that C = A * B * A^T, where B is a diagonal matrix specified by the vector.
-  // Note that C cannot be the same object as A.
+  //-- Fills C such that C = A * B * A^T, where B is a diagonal matrix specified by the vector.
+  //-- Note that C cannot be the same object as A.
+  //-- NB this method was stolen directly from the RooUnfoldBayes Class.  Credit to Tim Ayde
   TMatrixD d (TMatrixD::kTransposed, a);
   d.NormByColumn (b, "M");
   c.Mult (a, d);
@@ -212,45 +217,6 @@ int DAgostiniUnfold::computeObsErrMatrix(int iter){
   }
   else{
 
-    /*
-    TMatrixD obsErrMatPrev_ = obsErrMat_;
-
-    for(int x = 0; x < Nobs; x++){
-      for(int y = 0; y < Ntru; y++){
-
-	double Mij         = Mij_(y, x);
-	double newEst      = vReco_(y);
-	double oldEst      = vPrior_(y);
-	double oldErrMatij = obsErrMatPrev_(y, x);
-	double sum         = 0.;
-
-	for(int k = 0; k < Nobs; k++){
-	  for(int l = 0; l < Ntru; l++){
-
-	    double nEk         = vObs_(k);
-	    double n0Cl        = vPrior_(l);
-	    double epsl        = effVec_[l];
-	    double Mki         = Mij_(y, k);
-	    double Mlk         = Mij_(l, k);
-	    double oldErrMatil = obsErrMatPrev_(l, x);
-
-	    if(n0Cl == 0) continue;
-	    sum += ( nEk * epsl / n0Cl ) * Mki * Mlk * oldErrMatil;
-
-	  }
-	} //-- End double sum loops
-
-	double obsErrMatij;
-	if(oldEst != 0) obsErrMatij = Mij + (newEst / oldEst) * oldErrMatij - sum;
-	else            obsErrMatij = Mij - sum;
-	obsErrMat_(x, y) = obsErrMatij;
-
-      }
-    } //-- End matrix element loops
-
-    return 1;
-    */
-    
     TVectorD ksum(Nobs);
 
     for (Int_t j = 0 ; j < Nobs ; j++) {
@@ -314,7 +280,7 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
   //-- dn(cj)/dP( ei | ck )
   //-- x <==> ei ck
   //-- y <==> cj
-
+  /*
   if(iter == 0){
 
     for(int i = 0; i < Nobs; i++){
@@ -350,7 +316,7 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
           //--          i=1...nE-1   i=nE...2nE-1   i=2nE...3nE-1 ... i=(nC-1)nE...nCnE-1
 
           int bin = i + k * Nobs;
-          respErrMat_(j, bin) = dncj_dPeick;
+          //respErrMat_(j, bin) = dncj_dPeick;
 
         }
       }
@@ -360,65 +326,11 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 
   } //-- End if(iter == 0)
   else{
-
-    /*
-    TMatrixD respErrMatPrev_ = respErrMat_;
     
-    for(int i = 0; i < Nobs; i++){
-      std::cout<<i<<std::endl;
-      for(int j = 0; j < Ntru; j++){
-        for(int k = 0; k < Ntru; k++){
-
-          double epsj         = effVec_[j];
-          double n0Cj         = vPrior_(j);
-          double nEi          = vObs_(i);
-          double nHatCj       = vReco_(j);
-          double n0Ck         = vPrior_(k);
-          double Mij          = Mij_(j, i);
-
-          int bin             = i + k * Nobs;
-          double prevIter_ijk = respErrMatPrev_(j, bin);
-          double fi     = foldPrior_(i);
-          if(fi == 0) continue;
-
-          double doubSum = 0.;
-          for(int L = 0; L < Nobs; L++){
-            for(int r = 0; r < Ntru; r++){
-
-              double nEL          = vObs_(L);
-              double MLj          = Mij_(j, L);
-              double MLr          = Mij_(r, L);
-
-              int bin             = i + k * Nobs;
-              double prevIter_irk = respErrMatPrev_(r, bin);
-
-              doubSum += nEL * MLj * MLr * prevIter_irk;
-
-            }
-          } //-- End doubSum loop
-
-	  double dncj_dPeick = 0;
-	  if(epsj == 0 && n0Cj !=0 ){
-	    dncj_dPeick =  -( n0Ck * nEi / fi ) * Mij + (nHatCj / n0Cj) * prevIter_ijk - (epsj / n0Cj) * doubSum;
-	  }
-	  if(epsj != 0 && n0Cj == 0){
-	    dncj_dPeick = (1./epsj) * ( n0Cj * nEi / fi - nHatCj ) * kronDelta(j,k) - ( n0Ck * nEi / fi ) * Mij;
-	  }
-	  if(epsj != 0 && n0Cj != 0){
-            dncj_dPeick = (1./epsj) * ( n0Cj * nEi / fi - nHatCj ) * kronDelta(j,k) - ( n0Ck * nEi / fi ) * Mij + (nHatCj / n0Cj) * prevIter_ijk - (epsj / n0Cj) * doubSum;
-          }
-          respErrMat_(j, bin) = dncj_dPeick;
-
-        }
-      }
-    } //-- End error matrix element loops
-    */
-
     TMatrixD M1( Ntru, Ntru*Nobs );
     TMatrixD suml( Nobs, Ntru*Nobs );
 
     for(int i = 0; i < Nobs; i++){
-      std::cout<<i<<std::endl;
       for(int k = 0; k < Ntru; k++){
 
 	int bin = i + k * Nobs;
@@ -444,13 +356,14 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 	  int bin = i + k * Nobs;
 
 	  //-- M1 part 1/4
-	  double epsj = effVec_[j];
-	  double n0Cj = vPrior_(j);
-	  double nEi  = vObs_(i);
-	  double fi   = foldPrior_(i);
+	  double epsj   = effVec_[j];
+	  double n0Cj   = vPrior_(j);
+	  double nhatCj = vReco_(j);
+	  double nEi    = vObs_(i);
+	  double fi     = foldPrior_(i);
 
 	  if( epsj == 0 || fi == 0 ) M1(j, bin) = 0.;
-	  else                       M1(j, bin) = (1./epsj) * ( n0Cj * nEi / fi - n0Cj ) * kronDelta(j, k);
+	  else                       M1(j, bin) = (1./epsj) * ( n0Cj * nEi / fi - nhatCj ) * kronDelta(j, k);
 
 	  //-- M1 part 2/4
 	  double n0Ck = vPrior_(k);
@@ -460,7 +373,6 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 	  else          M1(j, bin) -= ( n0Ck * nEi / fi ) * Mij;
 
 	  //-- M1 part 3/4
-	  double nhatCj         = vReco_(j);
 	  double errMatPrev_ijk = respErrMat_(j, bin);
 
 	  if( n0Cj == 0) M1(j, bin) += 0.;
@@ -490,11 +402,61 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 
     //-- Update respErrMat_
     respErrMat_ = M1;
+
     return 1;
 
-  } //-- End else
+    } //-- End else
 
-  return 0; //-- This return should never be reached, but is placed here to keep the compiler happy 
+    return 0; //-- This return should never be reached, but is placed here to keep the compiler happy
+
+  */
+
+  //-- How it's done in RooUnfold
+  if (iter > 0) {
+    TVectorD mbyu(Nobs);
+    for (Int_t i = 0 ; i < Nobs ; i++) {
+      double fi = foldPrior_(i);
+      if(fi == 0) continue;
+      double nEi = vObs_(i);
+      mbyu(i)= nEi /fi;
+    }
+    TMatrixD A= Mij_;
+    A.NormByRow (mbyu, "M");
+    TMatrixD B(A, TMatrixD::kMult, mResp_);
+    TMatrixD dnCidPjkUpd (B, TMatrixD::kMult, respErrMat_);
+    Int_t nec= Nobs*Ntru;
+    for (Int_t j = 0 ; j < Ntru ; j++) {
+      if (vPrior_(j)<=0.0) continue;  // skip loop: dnCidPjkUpd(i,jk) will also be 0 because _Mij(i,j) will be 0                                                               
+      Double_t r= vReco_(j) / vPrior_(j);
+      for (Int_t ik= 0; ik<nec; ik++)
+	respErrMat_(j,ik)= r*respErrMat_(j,ik) - dnCidPjkUpd(j,ik);
+    }
+  }
+
+  for (Int_t i = 0 ; i < Nobs; i++) {
+    if (foldPrior_(i)==0.0) continue;
+    Double_t mbyu= 1./foldPrior_(i)*vObs_(i);
+    Int_t i0= i*Ntru;
+    for (Int_t j = 0 ; j < Ntru ; j++) {
+      Double_t b= -mbyu * Mij_(j,i);
+      for (Int_t k = 0 ; k < Ntru ; k++) respErrMat_(j,i0+k) += b*vPrior_(k);
+      if (effVec_[j]!=0.0)
+	respErrMat_(j,i0+j) += (vPrior_(j)*mbyu - vReco_(j)) / effVec_[j];
+    }
+  }
+
+  return 1;
+
+}
+
+//-- =======================================
+//--                   H2M
+//-- =======================================
+
+void DAgostiniUnfold::DoSystematics(){
+
+  std::cout<<"dosys_ set to true.  Will propagate uncertainties on the response matrix..."<<std::endl;
+  dosys_ = 1;
 
 }
 
@@ -671,6 +633,35 @@ void DAgostiniUnfold::makeRespCov0(){
 }
 
 //-- =======================================
+//--                 refold
+//-- =======================================
+
+TH1D * DAgostiniUnfold::refold(TH1D * hreco, string name){
+
+  int nt = hreco->GetNbinsX();
+  if( nt != Ntru ){
+    std::cout<<"Warning!!! Binning in hreco does not match Ntru!"<<std::endl;
+    std::cout<<"Returning an null pointer for the refolded histogram"<<std::endl;
+    return 0;
+  }
+
+  TVectorD vSmear(Ntru);
+  vSmear = H2V(hreco);
+  vSmear *= mResp_;
+
+  double smL = hResp_->ProjectionX()->GetBinLowEdge(1);
+  double smH = hResp_->ProjectionX()->GetBinLowEdge(Nobs) + hResp_->ProjectionY()->GetBinWidth(Nobs);
+
+  TH1D * hsmear = new TH1D(name.data(), name.data(), Nobs, smL, smH);
+  for(int i = 1; i <= Nobs; i++){
+    hsmear->SetBinContent( i, vSmear(i-1) );
+  }
+
+  return hsmear;
+
+}
+
+//-- =======================================
 //--                  Unfold
 //-- =======================================
 
@@ -686,14 +677,14 @@ int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
   if(hInitialPrior){
     std::cout<<"Manually setting the starting distribution"<<std::endl;
     TVectorD v = H2V(hInitialPrior);
-    SetPrior(v);
+    vPrior_ = v;
   }
   else std::cout<<"Using the projection of the response onto the truth axis as the starting distribution"<<std::endl;
 
   for(int k = 0; k < kiter_; k++){
 
     //-- Update the prior for subsequent iterations
-    if(k > 0) SetPrior(vReco_);
+    if(k > 0) vPrior_ = vReco_;
 
     //-- Fold the prior
     for(int x = 0; x < Nobs; x++){
@@ -729,26 +720,28 @@ int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
 
     //-- Set up the error propagation matrices    
     int obsErrCheck  = computeObsErrMatrix(k);
-    int respErrCheck = computeRespErrMatrix(k);
+    int respErrCheck;
+    if(dosys_) respErrCheck = computeRespErrMatrix(k);
 
-    if(!obsErrCheck){
+    if( !obsErrCheck ){
       std::cout<<"WARNING!!! Procedure broke when constructing the observed error propagation matrix"<<std::endl;
       return 0;
     }
-    if(!respErrCheck){
+    if( dosys_ && !respErrCheck ){
       std::cout<<"WARNING!!! Procedure broke when constructing the response error propagation matrix"<<std::endl;
       return 0;
     }
     
     //-- Set up the covaciance matrices
     int obsCovCheck  = computeObsCovMatrix(k);
-    int respCovCheck = computeRespCovMatrix(k);
+    int respCovCheck;
+    if(dosys_) respCovCheck = computeRespCovMatrix(k);
 
-    if(!obsCovCheck){
+    if( !obsCovCheck ){
       std::cout<<"WARNING!!! Procedure broke when constructing the observed covariance matrix"<<std::endl;
       return 0;
     }
-    if(!respCovCheck){
+    if( dosys_ && !respCovCheck ){
       std::cout<<"WARNING!!! Procedure broke when constructing the response covariance matrix"<<std::endl;
       return 0;
     }
@@ -756,7 +749,7 @@ int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
     //-- Make the covariance matrix for the unfolded distribution
     TMatrixD mDummy(Ntru, Ntru);
     mDummy += obsCovMat_;
-    mDummy += respCovMat_;
+    if( dosys_ ) mDummy += respCovMat_;
     recoCovMat_ = mDummy;
 
     //Error bars on hReco_ set as the square root of the diagonal elements of the cov matrix for hReco_
@@ -849,16 +842,5 @@ TH2D * DAgostiniUnfold::GetHRecoCov(string name){
 
   //-- Returns the unfolded distribution's covariance matrix as a TH2D object
   return hRecoCov_;
-
-}
-
-//-- =======================================
-//--                SetPrior
-//-- =======================================
-
-void DAgostiniUnfold::SetPrior(TVectorD vPrior){
-
-  //-- Sets the Prior distribution that will be used to construct the unfolding matrix for each iteration
-  vPrior_ = vPrior;
 
 }

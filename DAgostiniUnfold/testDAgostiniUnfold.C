@@ -15,6 +15,7 @@
 void testDAgostiniUnfold(){
 
   bool validate = 1;
+  bool dosys    = 0;
   int ptBin     = 0;
   int centBin   = 1;
   int VN        = 2;
@@ -23,6 +24,7 @@ void testDAgostiniUnfold(){
   static const int iter[] = {1, 2, 4, 8, 16, 32, 64, 128};
   int col[]               = {kOrange-2, kGreen+3, kCyan, kMagenta, kViolet-1, kBlue, kRed, kGray+2};
 
+  RooUnfold::ErrorTreatment errorTreatment = RooUnfold::kCovariance;
 
   setTDRStyle();
   TLatex latex;
@@ -40,8 +42,10 @@ void testDAgostiniUnfold(){
   TH2D * hresp[NCENT];
   TH1D * h1D[NCENT];
   TH1D * hreco1[NCENT][NITER];
+  TH1D * hrefold[NCENT][NITER];
   TH1D * hreco1_RU[NCENT][NITER];
   TH1D * hratio[NCENT][NITER];
+  TH1D * hratioErr[NCENT][NITER];
   RooUnfoldResponse * RUresp[NCENT];
   RooUnfoldBayes * RUBayes[NCENT][NITER];
 
@@ -52,6 +56,7 @@ void testDAgostiniUnfold(){
 
   TLegend * leg[NCENT][NITER];
   TCanvas * cIter[NCENT][NITER];
+  TCanvas * cIterErr[NCENT][NITER];
 
   //-- Get DATA
   for(int ivn = 1; ivn <=4; ivn++){
@@ -92,9 +97,11 @@ void testDAgostiniUnfold(){
       hreco1_RU[c][i] = 0;
 
       DAgostiniUnfold unfolder(hresp[c]);
+      if(dosys) unfolder.DoSystematics();
       unfolder.Unfold(h1D[c], iter[i]);
 
       hreco1[c][i] = (TH1D*) unfolder.GetHReco( Form("hreco1_%ci_iter%i", c, iter[i]) );
+      hrefold[c][i] = (TH1D*) unfolder.refold(hreco1[c][i], Form("hrefold_%ci_iter%i", c, iter[i]) );
       hreco1[c][i]->GetXaxis()->SetTitle("v_{2}");
       hreco1[c][i]->GetYaxis()->SetTitle("Events");
       hreco1[c][i]->SetLineColor(col[i]);
@@ -102,7 +109,7 @@ void testDAgostiniUnfold(){
       hreco1[c][i]->SetMarkerStyle(20);
 
       RUBayes[c][i] = new RooUnfoldBayes(RUresp[c], h1D[c], iter[i]);
-      hreco1_RU[c][i] = (TH1D*) RUBayes[c][i]->Hreco();
+      hreco1_RU[c][i] = (TH1D*) RUBayes[c][i]->Hreco(errorTreatment);
       hreco1_RU[c][i]->GetXaxis()->SetTitle("v_{2}");
       hreco1_RU[c][i]->GetYaxis()->SetTitle("Events");
       hreco1_RU[c][i]->SetLineColor(col[i+4]);
@@ -114,30 +121,30 @@ void testDAgostiniUnfold(){
       hratio[c][i]->GetXaxis()->SetTitle("v_{2}");
       hratio[c][i]->GetYaxis()->SetTitle("Ratio");
 
-      /*
-      TH1D * hratioErr = (TH1D*) hratio->Clone("hratioErr");
-      hratioErr->Reset();
-      hratioErr->GetXaxis()->SetTitle("v_{2}");
-      hratioErr->GetYaxis()->SetTitle("Error Bar Ratio");
-      hratioErr->SetLineWidth(3);
+      
+      hratioErr[c][i] = (TH1D*) hratio[c][i]->Clone( Form("hratioErr_%ci_iter%i", c, iter[i]) );
+      hratioErr[c][i]->Reset();
+      hratioErr[c][i]->GetXaxis()->SetTitle("v_{2}");
+      hratioErr[c][i]->GetYaxis()->SetTitle("Error Bar Ratio");
+      hratioErr[c][i]->SetLineWidth(3);
 
-      for(int i = 1; i <= hratio->GetNbinsX(); i++){
+      for(int j = 1; j <= hratio[c][i]->GetNbinsX(); j++){
 	
-	double myErr = hreco1[centBin]->GetBinError(i);
-	double ruErr = hreco1_RU[centBin]->GetBinError(i);
+	double myErr = hreco1[c][i]->GetBinError(j);
+	double ruErr = hreco1_RU[c][i]->GetBinError(j);
 	if(ruErr == 0) continue;
 
 	double ratio = myErr/ruErr;
-	hratioErr->SetBinContent(i, ratio);
+	hratioErr[c][i]->SetBinContent(j, ratio);
       }
-      */
+      
 
       leg[c][i] = new TLegend(0.7, 0.7, 0.9, 0.9);
       leg[c][i]->SetFillStyle(0);
       leg[c][i]->SetBorderSize(0);
       leg[c][i]->AddEntry(hreco1[c][i], "CastleUnfold", "lp");
       leg[c][i]->AddEntry(hreco1_RU[c][i], "RooUnfold", "lp");
-
+      /*
       cIter[c][i] = new TCanvas( Form("citer_c%i_iter%i", c, iter[i]), Form("citer_c%i_iter%i", c, iter[i]), 500, 1000);
       cIter[c][i]->Divide(1,2);
       cIter[c][i]->cd(1);
@@ -150,27 +157,14 @@ void testDAgostiniUnfold(){
       hratio[c][i]->Draw();
 
       cIter[c][i]->SaveAs( Form("plots/citer_c%i_iter%i.png", c, iter[i]) );
+      */
+      cIterErr[c][i] = new TCanvas( Form("citerErr_c%i_iter%i", c, iter[i]), Form("citerErr_c%i_iter%i", c, iter[i]), 500, 500);
+      cIterErr[c][i]->cd();
+      hratioErr[c][i]->Draw();
+      line->Draw("same");
 
     } //-- End iter loop
 
   } //-- End cent loop
-
-  /*
-  TCanvas * c = new TCanvas("c","c", 500, 1000);
-  c->Divide(1,2);
-  c->cd(1);
-  c->cd(1)->SetLogy();
-  hreco1[centBin]->Draw();
-  hreco1_RU[centBin]->Draw("same");
-
-  c->cd(2);
-  hratio->Draw();
-  line->Draw("same");
-
-  TCanvas * cc = new TCanvas("cc","cc",500, 500);
-  cc->cd();
-  hratioErr->Draw();
-  line->Draw("same");
-  */
 
 }

@@ -15,6 +15,7 @@
 void testDAgostiniPriorUnfold(){
 
   bool validate = 1;
+  bool dosys    = 0;
   int ptBin     = 0;
   int centBin   = 1;
   int VN        = 2;
@@ -101,6 +102,7 @@ void testDAgostiniPriorUnfold(){
       hreco1_RU[c][i] = 0;
 
       DAgostiniUnfold * unfolder = new DAgostiniUnfold(hresp[c]);
+      if(dosys) unfolder->DoSystematics(); 
       unfolder->Unfold(h1D[c], iter[i], hTrue[c]);
 
       hreco1[c][i] = (TH1D*) unfolder->GetHReco( Form("hreco1_%ci_iter%i", c, iter[i]) );
