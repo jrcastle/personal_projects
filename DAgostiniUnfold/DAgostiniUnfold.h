@@ -11,7 +11,6 @@
 
 #include "TH1D.h"
 #include "TH2D.h"
-#include "TH3D.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
 #include "TMath.h"
@@ -20,7 +19,7 @@ class DAgostiniUnfold{
 
  public:
   //-- Constructor
-  DAgostiniUnfold(TH2D * hresp);
+  DAgostiniUnfold(TH2D * hresp, bool smoothResp = 0);
   ~DAgostiniUnfold();
 
   //-- Methods
@@ -29,6 +28,7 @@ class DAgostiniUnfold{
   int computeObsErrMatrix(int iter);
   int computeRespCovMatrix(int iter);
   int computeRespErrMatrix(int iter);
+  void DebugMessages();
   void DoSystematics();
   TMatrixD H2M(TH2D * h);
   TMatrixD H2M(TH2D * h, TMatrixD &Mw2);
@@ -39,6 +39,7 @@ class DAgostiniUnfold{
   void makeEfficiencyVector();
   void makeRespCov0();
   TH1D * refold(TH1D * hreco, string name);
+  void smooth(TVectorD &V);
   int Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior = 0);
   TH1D * V2H(TH1D * h, TVectorD v);
   TH1D * V2H(TH1D * h, TVectorD v, TVectorD vw2);
@@ -46,6 +47,9 @@ class DAgostiniUnfold{
   //-- Getters
   TH1D * GetHReco(string name);
   TH2D * GetHRecoCov(string name);
+
+  //-- Setters
+  void SetSmoothIter();
 
  private:
   TMatrixD mResp_;        //-- Response matrix p( ei | cj ) with dimensions truth VS observed
@@ -75,7 +79,9 @@ class DAgostiniUnfold{
   int Nobs;               //-- Number of bins in the observed histogram
   int Ntru;               //-- Number of bins in the true histogram
   bool dosys_;            //-- Choice to propagate uncertainties on the response matrix. These are regarded as systematic uncertainties
-
+  bool DEBUG_;            //-- If true, adds some cout statements so the user can track where the code is if/when it breaks
+  bool smoothResp_;       //-- If true, calls the TH2::Smooth method on the input response matrix
+  bool smoothIter_;       //-- If true, the unfolded vector of each iteration will be smoothed using the TH1::SmoothArray method
 };
 
 
@@ -83,14 +89,22 @@ class DAgostiniUnfold{
 //--               CONSTRUCTOR             
 //-- =======================================
 
-DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp){
+DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp, bool smoothResp){
 
   std::cout<<"Constructing a new DAgostiniUnfold object..."<<std::endl;
-  hResp_ = 0;
-  dosys_ = 0;
+  hResp_      = 0;
+  dosys_      = 0;
+  DEBUG_      = 0;
+  smoothIter_ = 0;
+  smoothResp_ = smoothResp;
 
   //-- Store the response matrix into a class member
   hResp_ = (TH2D*) hresp->Clone("hResp_");
+  if( smoothResp_ ){
+    std::cout<<"Response matrix smoothing enabled"<<std::endl;
+    hResp_->Smooth(1, "k5b");
+  }
+
   TH1D * hy = (TH1D*) hResp_->ProjectionY();
   Nobs   = hResp_->GetNbinsX();
   Ntru   = hResp_->GetNbinsY();
@@ -139,7 +153,7 @@ DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp){
   //-- Collapse i and k onto the "x" axis of this matrix
   //-- x <==> ei ck
   //-- y <==> cj
-  respErrMat_.ResizeTo(Ntru, Ntru*Nobs);
+  if( dosys_ ) respErrMat_.ResizeTo(Ntru, Ntru*Nobs);
 
   //-- Initialize the covariance matrices for the respective error propagation matrices, which will build
   //-- the final covariance martrix for the unfolded distribution Cov_unfold = Cov_obs + Cov_resp
@@ -194,7 +208,7 @@ TMatrixD DAgostiniUnfold::ABAT (TMatrixD a, TVectorD b, TMatrixD c){
 
 int DAgostiniUnfold::computeObsCovMatrix(int iter){
 
-  std::cout<<"Converting the observed error propagation matrix to a covariance matrix for iteration "<<iter<<std::endl;
+  if( DEBUG_ ) std::cout<<"Converting the observed error propagation matrix to a covariance matrix for iteration "<<iter<<std::endl;
 
   TMatrixD dummy(Ntru, Ntru);
   obsCovMat_ = ABAT(obsErrMat_, vObsw2_, dummy);
@@ -209,7 +223,7 @@ int DAgostiniUnfold::computeObsCovMatrix(int iter){
 
 int DAgostiniUnfold::computeObsErrMatrix(int iter){
 
-  std::cout<<"Computing the observed error propagation matrix for iteration "<<iter<<std::endl;
+  if( DEBUG_ ) std::cout<<"Computing the observed error propagation matrix for iteration "<<iter<<std::endl;
 
   if(iter == 0){
     obsErrMat_ = Mij_;
@@ -261,7 +275,7 @@ int DAgostiniUnfold::computeObsErrMatrix(int iter){
 
 int DAgostiniUnfold::computeRespCovMatrix(int iter){
 
-  std::cout<<"Converting the response error propagation matrix to a covariance matrix for iteration "<<iter<<std::endl;
+  if( DEBUG_ ) std::cout<<"Converting the response error propagation matrix to a covariance matrix for iteration "<<iter<<std::endl;
 
   TMatrixD dummy(Ntru, Ntru);
   respCovMat_ = ABAT(respErrMat_, respCov0_, dummy);
@@ -275,7 +289,7 @@ int DAgostiniUnfold::computeRespCovMatrix(int iter){
 
 int DAgostiniUnfold::computeRespErrMatrix(int iter){
 
-  std::cout<<"Computing the response error propagation matrix for iteration "<<iter<<std::endl;
+  if( DEBUG_ ) std::cout<<"Computing the response error propagation matrix for iteration "<<iter<<std::endl;
 
   //-- dn(cj)/dP( ei | ck )
   //-- x <==> ei ck
@@ -450,7 +464,17 @@ int DAgostiniUnfold::computeRespErrMatrix(int iter){
 }
 
 //-- =======================================
-//--                   H2M
+//--              DebugMessages
+//-- =======================================
+
+void DAgostiniUnfold::DebugMessages(){
+
+  DEBUG_ = 1;
+
+}
+
+//-- =======================================
+//--              DoSystematics
 //-- =======================================
 
 void DAgostiniUnfold::DoSystematics(){
@@ -646,8 +670,9 @@ TH1D * DAgostiniUnfold::refold(TH1D * hreco, string name){
   }
 
   TVectorD vSmear(Ntru);
+  TMatrixD mResp(TMatrixD::kTransposed, mResp_);
   vSmear = H2V(hreco);
-  vSmear *= mResp_;
+  vSmear *= mResp;
 
   double smL = hResp_->ProjectionX()->GetBinLowEdge(1);
   double smH = hResp_->ProjectionX()->GetBinLowEdge(Nobs) + hResp_->ProjectionY()->GetBinWidth(Nobs);
@@ -662,7 +687,18 @@ TH1D * DAgostiniUnfold::refold(TH1D * hreco, string name){
 }
 
 //-- =======================================
-//--                  Unfold
+//--                 smooth
+//-- =======================================
+
+void DAgostiniUnfold::smooth(TVectorD &V){
+
+  std::cout<<"Smoothing..."<<std::endl;
+  TH1::SmoothArray(Ntru, V.GetMatrixArray(), 1);
+
+}
+
+//-- =======================================
+//--                 Unfold
 //-- =======================================
 
 int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
@@ -717,6 +753,9 @@ int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
     TVectorD vDummy = vObs_;
     vDummy *= Mij_;
     vReco_ = vDummy;
+    //-- If enabled, smooth all but the last iteration
+    if( smoothIter_ && k < kiter_-1 ) smooth(vReco_);
+
 
     //-- Set up the error propagation matrices    
     int obsErrCheck  = computeObsErrMatrix(k);
@@ -842,5 +881,16 @@ TH2D * DAgostiniUnfold::GetHRecoCov(string name){
 
   //-- Returns the unfolded distribution's covariance matrix as a TH2D object
   return hRecoCov_;
+
+}
+
+//-- =======================================
+//--              GetHRecoCov
+//-- =======================================
+
+void DAgostiniUnfold::SetSmoothIter(){
+
+  std::cout<<"Smoothing of each unfolding iteration enabled"<<std::endl;
+  smoothIter_ = 1;
 
 }
