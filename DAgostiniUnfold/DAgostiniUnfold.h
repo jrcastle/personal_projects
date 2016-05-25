@@ -181,13 +181,13 @@ DAgostiniUnfold::DAgostiniUnfold(TH2D * hresp, bool smoothResp){
 
 DAgostiniUnfold::~DAgostiniUnfold(){
 
-  std::cout<<"Destroying DAgostiniUnfold object..."<<std::endl;
+  if( DEBUG_ ) std::cout<<"Destroying DAgostiniUnfold object..."<<std::endl;
   if( hResp_ ) delete hResp_;
   
 }
 
 //-- =======================================
-//--                   ABAT
+//--                  ABAT                
 //-- =======================================
 
 TMatrixD DAgostiniUnfold::ABAT (TMatrixD a, TVectorD b, TMatrixD c){
@@ -218,7 +218,7 @@ int DAgostiniUnfold::computeObsCovMatrix(int iter){
 }
 
 //-- =======================================
-//--            computeObsErrMatrix
+//--           computeObsErrMatrix        
 //-- =======================================
 
 int DAgostiniUnfold::computeObsErrMatrix(int iter){
@@ -284,7 +284,7 @@ int DAgostiniUnfold::computeRespCovMatrix(int iter){
 }
 
 //-- =======================================
-//--           computeRespErrMatrix
+//--            computeRespErrMatrix        
 //-- =======================================
 
 int DAgostiniUnfold::computeRespErrMatrix(int iter){
@@ -474,7 +474,7 @@ void DAgostiniUnfold::DebugMessages(){
 }
 
 //-- =======================================
-//--              DoSystematics
+//--              DoSystematics            
 //-- =======================================
 
 void DAgostiniUnfold::DoSystematics(){
@@ -578,7 +578,7 @@ double DAgostiniUnfold::kronDelta(int i, int j){
 }
 
 //-- =======================================
-//--                  M2H
+//--                   M2H                  
 //-- =======================================
 
 TH2D * DAgostiniUnfold::M2H(TMatrixD M, TH2D * h){
@@ -613,7 +613,7 @@ TH2D * DAgostiniUnfold::M2H(TMatrixD M, TH2D * h){
 }
 
 //-- =======================================
-//--          makeEfficiencyVector
+//--           makeEfficiencyVector         
 //-- =======================================
 
 void DAgostiniUnfold::makeEfficiencyVector(){
@@ -631,7 +631,7 @@ void DAgostiniUnfold::makeEfficiencyVector(){
 }
 
 //-- =======================================
-//--               makeRespCov0
+//--               makeRespCov0            
 //-- =======================================
 
 void DAgostiniUnfold::makeRespCov0(){
@@ -657,7 +657,7 @@ void DAgostiniUnfold::makeRespCov0(){
 }
 
 //-- =======================================
-//--                 refold
+//--                  refold
 //-- =======================================
 
 TH1D * DAgostiniUnfold::refold(TH1D * hreco, string name){
@@ -687,7 +687,7 @@ TH1D * DAgostiniUnfold::refold(TH1D * hreco, string name){
 }
 
 //-- =======================================
-//--                 smooth
+//--                  smooth
 //-- =======================================
 
 void DAgostiniUnfold::smooth(TVectorD &V){
@@ -698,7 +698,7 @@ void DAgostiniUnfold::smooth(TVectorD &V){
 }
 
 //-- =======================================
-//--                 Unfold
+//--                  Unfold                
 //-- =======================================
 
 int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
@@ -803,7 +803,7 @@ int DAgostiniUnfold::Unfold(TH1D * hObserved, int niter, TH1D * hInitialPrior){
 }
 
 //-- =======================================
-//--                   V2H
+//--                   V2H                 
 //-- =======================================
 
 TH1D * DAgostiniUnfold::V2H(TH1D * h, TVectorD v){
@@ -852,7 +852,7 @@ TH1D * DAgostiniUnfold::V2H(TH1D * h, TVectorD v, TVectorD vw2){
 
 
 //-- =======================================
-//--                GetHReco
+//--                 GetHReco               
 //-- =======================================
 TH1D * DAgostiniUnfold::GetHReco(string name){
 
@@ -868,7 +868,7 @@ TH1D * DAgostiniUnfold::GetHReco(string name){
 }
 
 //-- =======================================
-//--              GetHRecoCov
+//--               GetHRecoCov              
 //-- =======================================
 
 TH2D * DAgostiniUnfold::GetHRecoCov(string name){
@@ -885,7 +885,7 @@ TH2D * DAgostiniUnfold::GetHRecoCov(string name){
 }
 
 //-- =======================================
-//--              GetHRecoCov
+//--              SetSmoothIter             
 //-- =======================================
 
 void DAgostiniUnfold::SetSmoothIter(){
