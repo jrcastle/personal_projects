@@ -6,6 +6,15 @@
 ##-- Author: James Castle
 import os
 
+VANDY = 1
+MIT   = 0
+
+
+#server = "cmsxrootd.fnal.gov/"
+#server = "cms-xrd-global.cern.ch/"
+#server = "xrootd.unl.edu/"
+server = "xrootd-cms.infn.it/"
+
 #-- Open one of the split files
 f = open("files1.txt")
 
@@ -17,14 +26,18 @@ count = 1
 ##-- Loop over the list of files, generate the xrdcp command, and execute it
 for line in fileList:
     line = line.replace("\n","")
-    line = line.replace("/lio/lfs/cms","")
+    if VANDY:
+        line = line.replace("/lio/lfs/cms","")
+        fName = line.split("/")[9]
+    if MIT:
+        line = line.replace("/mnt/hadoop/cms","")
     fName = line.split("/")[9]
     ##-- Check to see if the file is already in the working directory.  If so, delete it.  Else xrdcp will complain
     if os.path.exists(fName):
         print str(fName) + " already exists in this directory, removing it now..."
         command = "rm " + str(fName)
         os.system(command)
-    command = "xrdcp root://cmsxrootd.fnal.gov/" + str(line) + " " + str(fName)
+    command = "xrdcp root://" + server + str(line) + " " + str(fName)
     print "Transferring file " + str(fName) + " ...\t" + str(100.*float(count)/Nfiles) + "% Complete"
     os.system(command)
     count = count + 1

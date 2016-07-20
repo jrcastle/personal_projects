@@ -8,8 +8,9 @@
 ##-------------------------------------------------------------------------------------------------##
 ##-- Author: James Castle
 ##--
-##-- Sample lcg-ls command for Vanderbilt:
+##-- Sample lcg-ls commands for Vanderbilt and MIT:
 ##-- lcg-ls -b -D srmv2 'srm://se1.accre.vanderbilt.edu:6288/srm/v2/server?SFN=/lio/lfs/cms/store/user/'
+##-- lcg-ls -b -D srmv2 'srm://se01.cmsaf.mit.edu:8443/srm/v2/server?SFN=/mnt/hadoop/cms/store/user/'
 
 import os
 

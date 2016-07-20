@@ -5,7 +5,10 @@
 ##----------------------------------------------------------------------------------------------------##
 ##-- Author: James Castle
 ##-- Example to generate MASTER.txt:
-##-- lcg-ls -b -D srmv2 'srm://se1.accre.vanderbilt.edu:6288/srm/v2/server?SFN=/lio/lfs/cms/store/user/<path-to-CRAB-output> >> MASTER.txt
+##-- lcg-ls -b -D srmv2 'srm://se1.accre.vanderbilt.edu:6288/srm/v2/server?SFN=/lio/lfs/cms/store/user/<path-to-CRAB-output>' >> MASTER.txt
+
+##-- IMPORTANT!!!!!!! DO NOT USE lcg-del ON FILES STORED AT MIT.  THEY WILL GET VERY MAD AT YOU!!!!!!
+##-- THE PROPER PROTOCOL IS TO E-MAIL THE MIT CONTACT AND REQUEST FILES TO BE DELETED 
 
 import os
 
