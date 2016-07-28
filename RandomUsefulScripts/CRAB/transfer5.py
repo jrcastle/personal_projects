@@ -11,9 +11,9 @@ MIT   = 0
 
 
 #server = "cmsxrootd.fnal.gov/"
-#server = "cms-xrd-global.cern.ch/"
+server = "cms-xrd-global.cern.ch/"
 #server = "xrootd.unl.edu/"
-server = "xrootd-cms.infn.it/"
+#server = "xrootd-cms.infn.it/"
 
 #-- Open one of the split files
 f = open("files5.txt")
@@ -37,7 +37,7 @@ for line in fileList:
         print str(fName) + " already exists in this directory, removing it now..."
         command = "rm " + str(fName)
         os.system(command)
-    command = "xrdcp root://" + server + str(line) + " " + str(fName)
+    command = "xrdcp --retry 3 root://" + server + str(line) + " " + str(fName)
     print "Transferring file " + str(fName) + " ...\t" + str(100.*float(count)/Nfiles) + "% Complete"
     os.system(command)
     count = count + 1
